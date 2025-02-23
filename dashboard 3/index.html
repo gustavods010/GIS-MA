@@ -8,7 +8,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; }
-        canvas { width: 90% !important; height: 400px !important; margin: 20px auto; display: block; }
+        canvas { width: 90% !important; height: 500px !important; margin: 20px auto; display: block; }
+        .chart-container { position: relative; width: 90%; margin: auto; }
+        .chart-container canvas { font-size: 18px !important; }
     </style>
 </head>
 <body>
@@ -19,10 +21,10 @@
     <input type="date" id="endDate">
     <button onclick="updateCharts()">Filter</button>
     
-    <canvas id="progressChart"></canvas>
-    <canvas id="timeChart"></canvas>
-    <canvas id="scatterChart"></canvas>
-    <canvas id="distanceChart"></canvas>
+    <div class="chart-container"><canvas id="progressChart"></canvas></div>
+    <div class="chart-container"><canvas id="timeChart"></canvas></div>
+    <div class="chart-container"><canvas id="scatterChart"></canvas></div>
+    <div class="chart-container"><canvas id="distanceChart"></canvas></div>
 
     <script>
         const csvUrl = "https://gustavods010.github.io/GIS-MA/Grinding stats.csv";
@@ -57,10 +59,22 @@
             if (scatterChart) scatterChart.destroy();
             if (distanceChart) distanceChart.destroy();
             
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { font: { size: 16 } } }
+                },
+                scales: {
+                    x: { ticks: { font: { size: 14 } } },
+                    y: { ticks: { font: { size: 14 } } }
+                }
+            };
+            
             progressChart = new Chart(ctx1, {
                 type: 'line',
                 data: { labels: filteredDates.map(d => d.toISOString().split('T')[0]), datasets: [{ label: "Completed Kilometers", data: filteredCompletedKm, borderColor: "blue", fill: false }] },
-                options: { responsive: true }
+                options: chartOptions
             });
             
             timeChart = new Chart(ctx2, {
@@ -69,19 +83,19 @@
                     { label: "Spark Time (min)", data: filteredSparkTime, backgroundColor: "red" },
                     { label: "Available Track Time (min)", data: filteredAvailableTime, backgroundColor: "green" }
                 ] },
-                options: { responsive: true }
+                options: chartOptions
             });
             
             scatterChart = new Chart(ctx3, {
                 type: 'scatter',
                 data: { datasets: [{ label: "Pass vs Completed Km", data: filteredPassKm.map((p, i) => ({ x: p, y: filteredCompletedKm[i] })), backgroundColor: "purple" }] },
-                options: { responsive: true }
+                options: chartOptions
             });
             
             distanceChart = new Chart(ctx4, {
                 type: 'bar',
                 data: { labels: filteredDates.map(d => d.toISOString().split('T')[0]), datasets: [{ label: "Distance Covered", data: filteredCompletedKm, backgroundColor: "blue" }] },
-                options: { responsive: true }
+                options: chartOptions
             });
         }
 
