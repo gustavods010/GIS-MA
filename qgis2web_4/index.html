@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        .slider-container {
+            position: absolute;
+            top: 10px;
+            left: 50px;
+            background: white;
+            padding: 10px;
+            z-index: 1000;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+        </style>
+        <title>Leaflet Date Filter</title>
+    </head>
+    <body>
+        <div id="map"></div>
+        <div class="slider-container">
+            <label for="startDate">Start Date:</label>
+            <input type="date" id="startDate">
+            <label for="endDate">End Date:</label>
+            <input type="date" id="endDate">
+        </div>
+        <script src="js/leaflet.js"></script>
+        <script src="data/VLI_FNS_grinding_2025_1_2.js"></script>
+        <script>
+        var map = L.map('map').setView([0, 0], 2);
+        var baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+        var layer_VLI_FNS_grinding_2025_1_2 = L.geoJson(json_VLI_FNS_grinding_2025_1_2, {
+            onEachFeature: function (feature, layer) {
+                layer.bindPopup('Date: ' + feature.properties.date);
+            }
+        }).addTo(map);
+
+        function filterData() {
+            var startDate = document.getElementById('startDate').value;
+            var endDate = document.getElementById('endDate').value;
+            
+            if (!startDate || !endDate) return;
+            
+            map.removeLayer(layer_VLI_FNS_grinding_2025_1_2);
+            layer_VLI_FNS_grinding_2025_1_2 = L.geoJson(json_VLI_FNS_grinding_2025_1_2, {
+                filter: function (feature) {
+                    var featureDate = feature.properties.date;
+                    return featureDate >= startDate && featureDate <= endDate;
+                },
+                onEachFeature: function (feature, layer) {
+                    layer.bindPopup('Date: ' + feature.properties.date);
+                }
+            }).addTo(map);
+        }
+        
+        document.getElementById('startDate').addEventListener('change', filterData);
+        document.getElementById('endDate').addEventListener('change', filterData);
+        </script>
+    </body>
+</html>
