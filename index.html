@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map with Date Slider</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #map { height: 500px; width: 100%; }
+        #slider-container { margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div id="slider-container">
+        <input type="range" id="dateSlider" min="0" max="10" step="1">
+        <span id="selectedDate">Select a date</span>
+    </div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        var map = L.map('map').setView([-7.567, -48.000], 10);
+
+        // Basemap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        var firstLineLayer, secondLineLayer;
+        var dates = [];
+        var firstLayerUrl = "https://gustavods010.github.io/GIS-MA/VLI_FNS_base_line.geojson"; // Always visible
+        var secondLayerUrl = "https://gustavods010.github.io/GIS-MA/VLI_FNS_grinding_2025_1.geojson"; // Date-filtered
+
+        // Load the first line layer (always visible)
+        fetch(firstLayerUrl)
+            .then(response => response.json())
+            .then(data => {
+                firstLineLayer = L.geoJSON(data, {
+                    style: { color: 'red', weight: 2 }
+                }).addTo(map);
+            });
+
+        // Load and filter the second line layer
+        fetch(secondLayerUrl)
+            .then(response => response.json())
+            .then(data => {
+                dates = [...new Set(data.features.map(f => f.properties.date))].sort();
+                document.getElementById('dateSlider').max = dates.length - 1;
+                updateMap(dates[0]); // Load the first available date
+
+                document.getElementById('dateSlider').addEventListener('input', function () {
+                    var selectedDate = dates[this.value];
+                    document.getElementById('selectedDate').textContent = selectedDate;
+                    updateMap(selectedDate);
+                });
+            });
+
+        function updateMap(selectedDate) {
+            if (secondLineLayer) {
+                map.removeLayer(secondLineLayer);
+            }
+
+            fetch(secondLayerUrl)
+                .then(response => response.json())
+                .then(data => {
+                    var filteredFeatures = data.features.filter(f => f.properties.date === selectedDate);
+                    secondLineLayer = L.geoJSON(filteredFeatures, {
+                        style: { color: 'blue', weight: 3 }
+                    }).addTo(map);
+                });
+        }
+    </script>
+</body>
+</html>
