@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Form</title>
+    <script>
+        const lineOptions = {
+            "Customer A": ["Line A1", "Line A2", "Line A3"],
+            "Customer B": ["Line B1", "Line B2"],
+            "Customer C": ["Line C1", "Line C2", "Line C3", "Line C4"]
+        };
+
+        function updateLines() {
+            const customerSelect = document.querySelector("select[name='customer']");
+            const lineSelect = document.querySelector("select[name='line']");
+            const selectedCustomer = customerSelect.value;
+            
+            lineSelect.innerHTML = "";
+            if (selectedCustomer in lineOptions) {
+                lineOptions[selectedCustomer].forEach(line => {
+                    let option = document.createElement("option");
+                    option.value = line;
+                    option.textContent = line;
+                    lineSelect.appendChild(option);
+                });
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            document.querySelector("select[name='customer']").addEventListener("change", updateLines);
+        });
+
+        async function uploadToGitHub(csvData) {
+            const GITHUB_TOKEN = "INSERT TOKEN HERE"; // Replace with your actual token
+            const REPO_OWNER = "gustavods010";
+            const REPO_NAME = "GIS-MA";
+            const FILE_PATH = "reports/report.csv";
+            const COMMIT_MESSAGE = "Appending new report entry";
+            
+            const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
+            
+            // Fetch existing file to append data
+            let sha = null;
+            let existingContent = "";
+            try {
+                const response = await fetch(url, {
+                    headers: { Authorization: `token ${GITHUB_TOKEN}` }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    sha = data.sha;
+                    existingContent = atob(data.content);
+                }
+            } catch (error) {
+                console.error("Error fetching existing file SHA or content:", error);
+            }
+            
+            // Append new row to existing CSV data
+            const newContent = existingContent + "\n" + csvData;
+            const content = btoa(unescape(encodeURIComponent(newContent)));
+            
+            const payload = {
+                message: COMMIT_MESSAGE,
+                content: content,
+                sha: sha // Include SHA to update existing file
+            };
+            
+            fetch(url, {
+                method: "PUT",
+                headers: {
+                    Authorization: `token ${GITHUB_TOKEN}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert("Report successfully appended to GitHub CSV!");
+            })
+            .catch(error => {
+                console.error("Error appending to GitHub:", error);
+            });
+        }
+    </script>
+</head>
+<body>
+    <h2>Report Form</h2>
+    <form id="reportForm">
+        <label>Date of report: <input type="date" name="date_of_report" required></label><br>
+        <label>Customer: 
+            <select name="customer" required>
+                <option value="">Select a Customer</option>
+                <option value="Customer A">Customer A</option>
+                <option value="Customer B">Customer B</option>
+                <option value="Customer C">Customer C</option>
+            </select>
+        </label><br>
+        <label>Line: 
+            <select name="line" required>
+                <option value="">Select a Line</option>
+            </select>
+        </label><br>
+        <label>Operator: <input type="text" name="operator" required></label><br>
+        <label>Operator phone number: <input type="text" name="operator_phone" required></label><br>
+        <label>Supervisor: <input type="text" name="supervisor" required></label><br>
+        <label>Supervisor phone number: <input type="text" name="supervisor_phone" required></label><br>
+        <label>Rep: <input type="text" name="rep" required></label><br>
+        <label>Rep phone number: <input type="text" name="rep_phone" required></label><br>
+        <label>Comments internal: <input type="text" name="comments_internal"></label><br>
+        <label>Comments external: <input type="text" name="comments_external"></label><br>
+        <label>Shift number: <input type="text" name="shift_number" required></label><br>
+        <label>Shift type: 
+            <select name="shift_type">
+                <option value="Day">Day</option>
+                <option value="Night">Night</option>
+            </select>
+        </label><br>
+        <label>Call time: <input type="time" name="call_time" required></label><br>
+        <label>Spark minutes: <input type="number" name="spark_minutes" required></label><br>
+        <button type="submit">Submit Report</button>
+    </form>
+    
+    <script>
+        document.getElementById("reportForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            let csvData = Array.from(formData.values()).join(",");
+            uploadToGitHub(csvData);
+        });
+    </script>
+</body>
+</html>
