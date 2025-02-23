@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grinding Stats Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        canvas { max-width: 800px; margin: 20px auto; display: block; }
+    </style>
+</head>
+<body>
+    <h2>Grinding Stats Dashboard</h2>
+    <label for="startDate">Start Date:</label>
+    <input type="date" id="startDate">
+    <label for="endDate">End Date:</label>
+    <input type="date" id="endDate">
+    <button onclick="updateCharts()">Filter</button>
+    
+    <canvas id="progressChart"></canvas>
+    <canvas id="timeChart"></canvas>
+    <canvas id="scatterChart"></canvas>
+    <canvas id="distanceChart"></canvas>
+
+    <script>
+        const csvUrl = "https://gustavods010.github.io/GIS-MA/Grinding stats.csv";
+        let dates = [], completedKm = [], sparkTime = [], availableTime = [], passKm = [];
+        let progressChart, timeChart, scatterChart, distanceChart;
+
+        function fetchData() {
+            Papa.parse(csvUrl, {
+                download: true,
+                header: true,
+                dynamicTyping: true,
+                complete: function(results) {
+                    const data = results.data;
+                    dates = data.map(row => new Date(row.date)); // Convert to Date object
+                    completedKm = data.map(row => row["completed kilometers"]);
+                    sparkTime = data.map(row => row["spark time (min)"]);
+                    availableTime = data.map(row => row["available track time (min)"]);
+                    passKm = data.map(row => row["pass kilometers"]);
+                    createCharts(dates, completedKm, sparkTime, availableTime, passKm);
+                }
+            });
+        }
+
+        function createCharts(filteredDates, filteredCompletedKm, filteredSparkTime, filteredAvailableTime, filteredPassKm) {
+            const ctx1 = document.getElementById("progressChart").getContext("2d");
+            const ctx2 = document.getElementById("timeChart").getContext("2d");
+            const ctx3 = document.getElementById("scatterChart").getContext("2d");
+            const ctx4 = document.getElementById("distanceChart").getContext("2d");
+            
+            if (progressChart) progressChart.destroy();
+            if (timeChart) timeChart.destroy();
+            if (scatterChart) scatterChart.destroy();
+            if (distanceChart) distanceChart.destroy();
+            
+            progressChart = new Chart(ctx1, {
+                type: 'line',
+                data: { labels: filteredDates.map(d => d.toISOString().split('T')[0]), datasets: [{ label: "Completed Kilometers", data: filteredCompletedKm, borderColor: "blue", fill: false }] },
+                options: { responsive: true }
+            });
+            
+            timeChart = new Chart(ctx2, {
+                type: 'bar',
+                data: { labels: filteredDates.map(d => d.toISOString().split('T')[0]), datasets: [
+                    { label: "Spark Time (min)", data: filteredSparkTime, backgroundColor: "red" },
+                    { label: "Available Track Time (min)", data: filteredAvailableTime, backgroundColor: "green" }
+                ] },
+                options: { responsive: true }
+            });
+            
+            scatterChart = new Chart(ctx3, {
+                type: 'scatter',
+                data: { datasets: [{ label: "Pass vs Completed Km", data: filteredPassKm.map((p, i) => ({ x: p, y: filteredCompletedKm[i] })), backgroundColor: "purple" }] },
+                options: { responsive: true }
+            });
+            
+            distanceChart = new Chart(ctx4, {
+                type: 'bar',
+                data: { labels: filteredDates.map(d => d.toISOString().split('T')[0]), datasets: [{ label: "Distance Covered", data: filteredCompletedKm, backgroundColor: "blue" }] },
+                options: { responsive: true }
+            });
+        }
+
+        function updateCharts() {
+            const startDate = new Date(document.getElementById("startDate").value);
+            const endDate = new Date(document.getElementById("endDate").value);
+            
+            const filteredIndices = dates.map((date, index) => ({ date, index }))
+                .filter(d => (!isNaN(startDate) && d.date >= startDate) && (!isNaN(endDate) && d.date <= endDate))
+                .map(d => d.index);
+            
+            const filteredDates = filteredIndices.map(i => dates[i]);
+            const filteredCompletedKm = filteredIndices.map(i => completedKm[i]);
+            const filteredSparkTime = filteredIndices.map(i => sparkTime[i]);
+            const filteredAvailableTime = filteredIndices.map(i => availableTime[i]);
+            const filteredPassKm = filteredIndices.map(i => passKm[i]);
+            
+            createCharts(filteredDates, filteredCompletedKm, filteredSparkTime, filteredAvailableTime, filteredPassKm);
+        }
+
+        fetchData();
+    </script>
+</body>
+</html>
